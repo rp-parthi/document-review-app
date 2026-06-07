@@ -1,0 +1,30 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class User(AbstractUser):
+    ROLE_CHOICES = [
+	('none', 'None'),
+	('submitter', 'Submitter'),
+	('reviewer', 'Reviewer'),
+    ]
+    role = models.CharField(
+	max_length=10, 
+	choices=ROLE_CHOICES, 
+	default='none'
+	)
+
+class Document(models.Model):
+    STATUS_CHOICES = [
+	('draft', 'Draft'),
+	('under_review', 'Under Review'),
+	('approved', 'Approved'),
+	('rejected', 'Rejected'),
+    ]
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='docuemnts/')
+    status = models.CharField(
+	max_length=20,
+	choices=STATUS_CHOICES,
+	default='draft'
+	)
+    uploaded_by = models.ForeignKey(
