@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.contrib import messages
 from .models import User, Document, Comment
 from django.utils import timezone
@@ -19,6 +21,13 @@ def register_view(request):
             messages.error(request, 'Username already taken')
             return redirect('register')
         
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return redirect('register')
+        
         user = User.objects.create_user(username=username, password=password)
         messages.success(request, 'Account created. Please log in.')
         return redirect('login')
@@ -26,6 +35,12 @@ def register_view(request):
     return render(request, 'core/register.html')
 
 def login_view(request):
+    if request.user.is_authenticated:
+        if request.user.role == 'submitter':
+            return redirect('submitter_dashboard')
+        elif request.user.role == 'reviewer':
+            return redirect('reviewer_dashboard')
+        
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -105,7 +120,7 @@ def upload_document(request):
 def document_detail(request, id):
     document = get_object_or_404(Document, id=id)
     comments = Comment.objects.filter(document=document)
-    return render(request, 'core/document_detail.html', {'document': document, 'comment': comments})
+    return render(request, 'core/document_detail.html', {'document': document, 'comments': comments})
 
 
 @login_required
