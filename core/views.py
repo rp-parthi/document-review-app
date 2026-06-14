@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import User, Document, Comment
+from django.utils import timezone
 
 def register_view(request):
     if request.method == 'POST':
@@ -44,7 +45,7 @@ def login_view(request):
             messages.error(request, 'Invalid username or password.')
             return redirect('login')
     
-    return redirect(request, 'core/login.html')
+    return render(request, 'core/login.html')
 
 @login_required
 def logout_view(request):
@@ -82,7 +83,7 @@ def upload_document(request):
     if request.method == 'POST':
         title = request.POST['title']
         file = request.FILES['file']
-        assigned_to_id = request.POST['assifned_to']
+        assigned_to_id = request.POST['assigned_to']
         action = request.POST['action']
 
         assigned_to = User.objects.get(id=assigned_to_id)
@@ -98,7 +99,7 @@ def upload_document(request):
         return redirect('submitter_dashboard')
 
     reviewers = User.objects.filter(role='reviewer')
-    return redirect(request, 'core/upload_document.html', {'reviewers': reviewers})
+    return render(request, 'core/upload_document.html', {'reviewers': reviewers})
 
 @login_required
 def document_detail(request, id):
@@ -109,7 +110,7 @@ def document_detail(request, id):
 
 @login_required
 def edit_document(request, id):
-    document = get_object_or_404(Document, id)
+    document = get_object_or_404(Document, id=id)
 
     if request.user != document.uploaded_by:
         return redirect('submitter_dashboard')
@@ -118,7 +119,7 @@ def edit_document(request, id):
         return redirect('document_detail', id=id)
     
     if request.method == 'POST':
-        document.title = request.POST('title')
+        document.title = request.POST['title']
         document.assigned_to = User.objects.get(id=request.POST['assigned_to'])
         action = request.POST['action']
 
@@ -160,7 +161,7 @@ def approve_document(request, id):
     if request.method == 'POST':
         if document.status == 'under_review':
             document.status = 'approved'
-            document.date_reviewed = document.date_uploaded.__class__.now()
+            document.date_reviewed = timezone.now()
             document.save()
         return redirect('reviewer_dashboard')
     
@@ -179,7 +180,7 @@ def reject_document(request, id):
     if request.method == 'POST':
         if document.status == 'under_review':
             document.status = 'rejected'
-            document.date_reviewed = document.date_uploaded.__class__.now()
+            document.date_reviewed = timezone.now()
             document.save()
         return redirect('reviewer_dashboard')
 
